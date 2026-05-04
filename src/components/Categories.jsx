@@ -1,15 +1,13 @@
-import { Link } from "react-router-dom";
-
-function Categories() {
+export default function Categories() {
   const categories = [
-    { icon: "🔧", name: "Plomería", value: "plomeria", class: "cat-blue" },
-    { icon: "🍰", name: "Repostería", value: "reposteria", class: "cat-pink" },
-    { icon: "🎓", name: "Tutorías", value: "tutorias", class: "cat-purple" },
-    { icon: "⚡", name: "Electricidad", value: "electricidad", class: "cat-yellow" },
-    { icon: "✨", name: "Belleza", value: "belleza", class: "cat-rose" },
-    { icon: "🔨", name: "Carpintería", value: "carpinteria", class: "cat-amber" },
-    { icon: "🐾", name: "Mascotas", value: "mascotas", class: "cat-green" },
-    { icon: "🧹", name: "Limpieza", value: "limpieza", class: "cat-cyan" }
+    { name: "Hogar", icon: "🏠", class: "cat-green" },
+    { name: "Tecnología", icon: "💻", class: "cat-blue" },
+    { name: "Salud", icon: "🩺", class: "cat-rose" },
+    { name: "Educación", icon: "📚", class: "cat-purple" },
+    { name: "Belleza", icon: "💅", class: "cat-pink" },
+    { name: "Comida", icon: "🍔", class: "cat-amber" },
+    { name: "Transporte", icon: "🚗", class: "cat-cyan" },
+    { name: "Mascotas", icon: "🐶", class: "cat-yellow" }
   ];
 
   return (
@@ -17,21 +15,17 @@ function Categories() {
       <div className="container">
 
         <div className="section-head">
-          <div className="section-tag">Explora</div>
-          <h2>Categorías disponibles</h2>
-          <p>Encuentra el servicio que necesitas</p>
+          <span className="section-tag">CATEGORÍAS</span>
+          <h2>Explora lo que necesitas</h2>
+          <p>Servicios disponibles cerca de ti</p>
         </div>
 
         <div className="cats-grid">
-          {categories.map((cat, index) => (
-            <Link
-              key={index}
-              to={`/services?cat=${cat.value}`}
-              className={`cat-card ${cat.class}`}
-            >
+          {categories.map((cat, i) => (
+            <div key={i} className={`cat-card ${cat.class}`}>
               <div className="cat-emoji">{cat.icon}</div>
               <span>{cat.name}</span>
-            </Link>
+            </div>
           ))}
         </div>
 
@@ -39,5 +33,3 @@ function Categories() {
     </section>
   );
 }
-
-export default Categories;

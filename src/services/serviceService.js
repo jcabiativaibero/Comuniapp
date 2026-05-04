@@ -1,55 +1,41 @@
-import { supabase } from '../lib/supabase'
+import { supabase } from "../lib/supabase";
 
-// OBTENER TODOS LOS SERVICIOS
-export async function getServices(categoryId = null) {
-  let query = supabase
-    .from('services')
+// 🔥 GET TODOS LOS SERVICIOS
+export async function getServices() {
+  const { data, error } = await supabase
+    .from("services")
     .select(`
-      *,
-      profiles (full_name, neighborhood),
+      id,
+      title,
+      description,
+      price_from,
+      contact_phone,
+      user_id,
+      category_id,
       categories (name, icon)
     `)
-    .eq('is_active', true)
-    .order('created_at', { ascending: false })
+    .order("created_at", { ascending: false });
 
-  if (categoryId) {
-    query = query.eq('category_id', categoryId)
-  }
-
-  const { data, error } = await query
-  return { data, error }
+  return { data, error };
 }
 
-// OBTENER UN SERVICIO POR ID
+// 🔥 GET POR ID
 export async function getServiceById(id) {
   const { data, error } = await supabase
-    .from('services')
-    .select(`
-      *,
-      profiles (full_name, neighborhood, phone),
-      categories (name, icon)
-    `)
-    .eq('id', id)
-    .single()
-  return { data, error }
+    .from("services")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  return { data, error };
 }
 
-// OBTENER SERVICIOS DEL EMPRENDEDOR
-export async function getMyServices(userId) {
-  const { data, error } = await supabase
-    .from('services')
-    .select('*, categories (name, icon)')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false })
-  return { data, error }
-}
-
-// CREAR SERVICIO
+// 🔥 CREAR
 export async function createService(serviceData) {
-  const { data: { user } } = await supabase.auth.getUser()
-  
+  const { data: { user } } = await supabase.auth.getUser();
+
   const { data, error } = await supabase
-    .from('services')
+    .from("services")
     .insert({
       user_id: user.id,
       title: serviceData.title,
@@ -58,40 +44,46 @@ export async function createService(serviceData) {
       price_from: serviceData.priceFrom,
       contact_phone: serviceData.contactPhone
     })
-    .select()
-  return { data, error }
+    .select();
+
+  return { data, error };
 }
 
-// EDITAR SERVICIO
+// 🔥 UPDATE
 export async function updateService(id, serviceData) {
+  const { data: { user } } = await supabase.auth.getUser();
+
   const { data, error } = await supabase
-    .from('services')
+    .from("services")
     .update({
       title: serviceData.title,
       description: serviceData.description,
-      category_id: serviceData.categoryId,
       price_from: serviceData.priceFrom,
       contact_phone: serviceData.contactPhone
     })
-    .eq('id', id)
-    .select()
-  return { data, error }
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .select();
+
+  return { data, error };
 }
 
-// ELIMINAR SERVICIO
+// 🔥 DELETE
 export async function deleteService(id) {
   const { error } = await supabase
-    .from('services')
+    .from("services")
     .delete()
-    .eq('id', id)
-  return { error }
+    .eq("id", id);
+
+  return { error };
 }
 
-// OBTENER CATEGORÍAS
+// 🔥 CATEGORÍAS
 export async function getCategories() {
   const { data, error } = await supabase
-    .from('categories')
-    .select('*')
-    .order('id')
-  return { data, error }
+    .from("categories")
+    .select("*")
+    .order("id");
+
+  return { data, error };
 }

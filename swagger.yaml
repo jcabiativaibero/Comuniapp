@@ -1,0 +1,523 @@
+openapi: 3.0.3
+info:
+  title: ComuniApp API
+  description: |
+    API REST de ComuniApp — Directorio digital comunitario.
+    
+    La API está implementada sobre **Supabase** (PostgREST), lo que significa que
+    todos los endpoints siguen la convención REST estándar y se autentican mediante
+    tokens JWT emitidos por Supabase Auth.
+    
+    **Base URL de producción:** `https://[tu-proyecto].supabase.co/rest/v1`
+    
+    **Autenticación:** Bearer token JWT en el header `Authorization`.
+  version: 1.0.0
+  contact:
+    name: Equipo ComuniApp
+    url: https://github.com/[tu-usuario]/comuniapp
+
+servers:
+  - url: https://[tu-proyecto].supabase.co/rest/v1
+    description: Producción (Supabase)
+  - url: http://localhost:54321/rest/v1
+    description: Desarrollo local (Supabase CLI)
+
+security:
+  - BearerAuth: []
+  - ApiKeyAuth: []
+
+tags:
+  - name: Autenticación
+    description: Registro, inicio y cierre de sesión de usuarios
+  - name: Servicios
+    description: CRUD de servicios publicados por microempresarios
+  - name: Categorías
+    description: Listado de categorías disponibles
+  - name: Usuarios
+    description: Perfil y datos del usuario autenticado
+
+paths:
+
+  # ── AUTENTICACIÓN ──────────────────────────────────────────────
+
+  /auth/v1/signup:
+    post:
+      tags: [Autenticación]
+      summary: Registrar nuevo usuario
+      description: Crea una cuenta nueva con email y contraseña. Supabase envía un correo de confirmación.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: usuario@ejemplo.com
+                password:
+                  type: string
+                  minLength: 6
+                  example: MiContrasena123
+                data:
+                  type: object
+                  description: Metadatos adicionales del usuario
+                  properties:
+                    nombre:
+                      type: string
+                      example: Juan Pérez
+                    rol:
+                      type: string
+                      enum: [residente, microempresario]
+                      example: microempresario
+      responses:
+        '200':
+          description: Usuario creado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '422':
+          description: Email ya registrado
+
+  /auth/v1/token:
+    post:
+      tags: [Autenticación]
+      summary: Iniciar sesión
+      description: Autentica al usuario con email y contraseña. Retorna un JWT válido.
+      security: []
+      parameters:
+        - name: grant_type
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [password]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: usuario@ejemplo.com
+                password:
+                  type: string
+                  example: MiContrasena123
+      responses:
+        '200':
+          description: Sesión iniciada exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /auth/v1/logout:
+    post:
+      tags: [Autenticación]
+      summary: Cerrar sesión
+      description: Invalida el token JWT del usuario actual.
+      responses:
+        '204':
+          description: Sesión cerrada exitosamente
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ── SERVICIOS ──────────────────────────────────────────────────
+
+  /servicios:
+    get:
+      tags: [Servicios]
+      summary: Listar todos los servicios
+      description: Retorna el catálogo completo de servicios. Soporta filtros por categoría y búsqueda por texto.
+      security: []
+      parameters:
+        - name: categoria_id
+          in: query
+          description: Filtrar por ID de categoría (ej. `categoria_id=eq.3`)
+          schema:
+            type: string
+            example: eq.3
+        - name: nombre
+          in: query
+          description: Filtrar por nombre (ej. `nombre=ilike.*plomero*`)
+          schema:
+            type: string
+            example: ilike.*plomero*
+        - name: activo
+          in: query
+          description: Solo servicios activos
+          schema:
+            type: string
+            example: eq.true
+        - name: order
+          in: query
+          description: Ordenar resultados
+          schema:
+            type: string
+            example: created_at.desc
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            example: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            example: 0
+      responses:
+        '200':
+          description: Lista de servicios
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Servicio'
+
+    post:
+      tags: [Servicios]
+      summary: Publicar nuevo servicio
+      description: Crea un nuevo servicio. Solo disponible para usuarios con rol `microempresario`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServicioInput'
+      responses:
+        '201':
+          description: Servicio creado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Servicio'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /servicios/{id}:
+    get:
+      tags: [Servicios]
+      summary: Obtener servicio por ID
+      security: []
+      parameters:
+        - $ref: '#/components/parameters/ServicioId'
+      responses:
+        '200':
+          description: Detalle del servicio
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Servicio'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    patch:
+      tags: [Servicios]
+      summary: Actualizar servicio
+      description: Actualiza parcialmente un servicio. Solo el propietario puede editarlo (RLS).
+      parameters:
+        - $ref: '#/components/parameters/ServicioId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServicioInput'
+      responses:
+        '200':
+          description: Servicio actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Servicio'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags: [Servicios]
+      summary: Eliminar servicio
+      description: Elimina un servicio. Solo el propietario puede eliminarlo (RLS).
+      parameters:
+        - $ref: '#/components/parameters/ServicioId'
+      responses:
+        '204':
+          description: Servicio eliminado
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  # ── CATEGORÍAS ─────────────────────────────────────────────────
+
+  /categorias:
+    get:
+      tags: [Categorías]
+      summary: Listar categorías
+      description: Retorna todas las categorías disponibles para clasificar servicios.
+      security: []
+      responses:
+        '200':
+          description: Lista de categorías
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Categoria'
+
+  # ── USUARIOS ───────────────────────────────────────────────────
+
+  /usuarios:
+    get:
+      tags: [Usuarios]
+      summary: Obtener perfil del usuario autenticado
+      description: Retorna los datos del perfil del usuario actual. Usa `?id=eq.[user_id]` para filtrar.
+      parameters:
+        - name: id
+          in: query
+          description: Filtrar por UUID del usuario (ej. `id=eq.abc-123`)
+          schema:
+            type: string
+            example: eq.abc-123-def
+      responses:
+        '200':
+          description: Perfil del usuario
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Usuario'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    patch:
+      tags: [Usuarios]
+      summary: Actualizar perfil
+      description: Actualiza los datos del perfil del usuario autenticado.
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema:
+            type: string
+            example: eq.abc-123-def
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nombre:
+                  type: string
+                  example: Juan Pérez Actualizado
+                telefono:
+                  type: string
+                  example: "+573001234567"
+      responses:
+        '200':
+          description: Perfil actualizado
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+# ── COMPONENTES ────────────────────────────────────────────────
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token JWT obtenido al iniciar sesión
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: apikey
+      description: Supabase anon key (requerida en todas las peticiones)
+
+  parameters:
+    ServicioId:
+      name: id
+      in: query
+      required: true
+      description: Filtro por ID del servicio (ej. `id=eq.5`)
+      schema:
+        type: string
+        example: eq.5
+
+  schemas:
+    Servicio:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        nombre:
+          type: string
+          example: Plomería Rápida
+        descripcion:
+          type: string
+          example: Servicio de plomería a domicilio con más de 10 años de experiencia.
+        telefono:
+          type: string
+          example: "+573001234567"
+        categoria_id:
+          type: integer
+          example: 2
+        usuario_id:
+          type: string
+          format: uuid
+          example: abc-123-def-456
+        activo:
+          type: boolean
+          example: true
+        created_at:
+          type: string
+          format: date-time
+          example: "2025-03-15T10:30:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2025-05-20T14:00:00Z"
+
+    ServicioInput:
+      type: object
+      required: [nombre, descripcion, telefono, categoria_id]
+      properties:
+        nombre:
+          type: string
+          maxLength: 100
+          example: Plomería Rápida
+        descripcion:
+          type: string
+          maxLength: 500
+          example: Servicio de plomería a domicilio con más de 10 años de experiencia.
+        telefono:
+          type: string
+          example: "+573001234567"
+        categoria_id:
+          type: integer
+          example: 2
+        activo:
+          type: boolean
+          default: true
+
+    Categoria:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 2
+        nombre:
+          type: string
+          example: Plomería
+        icono:
+          type: string
+          example: "🔧"
+
+    Usuario:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: abc-123-def-456
+        nombre:
+          type: string
+          example: Juan Pérez
+        email:
+          type: string
+          format: email
+          example: juan@ejemplo.com
+        rol:
+          type: string
+          enum: [residente, microempresario]
+          example: microempresario
+        telefono:
+          type: string
+          example: "+573001234567"
+        created_at:
+          type: string
+          format: date-time
+
+    AuthResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+          description: JWT para autenticar peticiones
+        token_type:
+          type: string
+          example: bearer
+        expires_in:
+          type: integer
+          example: 3600
+        refresh_token:
+          type: string
+        user:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            email:
+              type: string
+              format: email
+
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Descripción del error
+        code:
+          type: string
+          example: PGRST116
+
+  responses:
+    BadRequest:
+      description: Solicitud inválida
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: No autenticado — token inválido o ausente
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: Sin permisos para realizar esta acción
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Recurso no encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

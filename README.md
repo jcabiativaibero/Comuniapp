@@ -153,7 +153,7 @@ docker-compose up --build
 
 La aplicación está desplegada en Vercel:
 
-🔗 **[https://comuniapp.vercel.app](https://comuniapp.vercel.app)**
+🔗 **[https://comuniapp-ba2t.vercel.app](https://comuniapp-ba2t.vercel.app/)**
 
 ---
 

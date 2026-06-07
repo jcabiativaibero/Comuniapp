@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  comuniapp-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: comuniapp_web
+    ports:
+      - "8080:80"
+    environment:
+      - VITE_SUPABASE_URL=${VITE_SUPABASE_URL}
+      - VITE_SUPABASE_ANON_KEY=${VITE_SUPABASE_ANON_KEY}
+    restart: always

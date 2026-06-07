@@ -153,7 +153,7 @@ docker-compose up --build
 
 La aplicación está desplegada en Vercel:
 
-🔗 **[https://comuniapp.vercel.app](https://comuniapp.vercel.app)** ← *actualiza con la URL real*
+🔗 **[https://comuniapp.vercel.app](https://comuniapp.vercel.app)**
 
 ---
 
@@ -163,18 +163,4 @@ La aplicación está desplegada en Vercel:
 - [Wiki del proyecto](../../wiki)
 - [Decisiones de arquitectura (ADR)](./docs/adr/)
 
----
 
-## 👥 Equipo
-
-| Nombre | Rol |
-|--------|-----|
-| [Integrante 1] | Frontend / Documentación |
-| [Integrante 2] | Backend / CI-CD |
-| [Integrante 3] | Pruebas / QA |
-
----
-
-## 📄 Licencia
-
-Proyecto académico — [Universidad / Institución] · 2025
